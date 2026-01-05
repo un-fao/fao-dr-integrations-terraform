@@ -1,0 +1,33 @@
+name: fao-dr integrations apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
+env:
+  RESOURCE_NAME: dr-integrations
+
+jobs:
+  terraform_apply:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4.1.0
+
+      - name: Terraform Apply
+        uses: ./.github/terraform/apply
+        with:
+          name: ${{ env.RESOURCE_NAME }}
+          terraform_directory: terraform
+          workload_identity_provider: ${{ vars.WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ vars.SERVICE_ACCOUNT }}
+          terraform_init_parameters: -reconfigure -backend-config="bucket=${{ vars.BUCKET_NAME }}" -backend-config="prefix=${{ env.RESOURCE_NAME }}"
+          terraform_apply_parameters: -var="project_id=${{ vars.PROJECT_ID }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}

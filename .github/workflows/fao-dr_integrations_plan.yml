@@ -1,0 +1,51 @@
+name: fao-dr integrations plan
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+
+env:
+  RESOURCE_NAME: dr-integrations
+
+jobs:
+  config-scan:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4.1.0
+
+      - name: Run Trivy IAC configuration Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          format: "table"
+          severity: 'CRITICAL,HIGH'
+          exit-code: "1"
+          ignore-unfixed: true
+
+  terraform-plan:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+      actions: read
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4.1.0
+
+      - name: Terraform Plan
+        uses: ./.github/terraform/plan
+        with:
+          name: ${{ env.RESOURCE_NAME }}
+          terraform_directory: terraform
+          workload_identity_provider: ${{ vars.WORKLOAD_ID_PROVIDER }}
+          service_account: ${{ vars.SERVICE_ACCOUNT }}
+          pr_id: ${{ github.event.pull_request.number }}
+          terraform_init_parameters: -reconfigure -backend-config="bucket=${{ vars.BUCKET_NAME }}" -backend-config="prefix=${{ env.RESOURCE_NAME }}"
+          terraform_plan_parameters: -var="project_id=${{ vars.PROJECT_ID }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,119 @@
+name: "Terraform setup and destroy"
+description: "Setup terraform and execute destroy command"
+inputs:
+  name:
+    description: 'Name of the terraform resource'
+    required: true
+  terraform_directory:
+    description: 'Directory that holds Terraform code'
+    required: true
+  workload_identity_provider: 
+    description: 'GCP Workload Identity federation provider'
+    required: true
+  service_account: 
+    description: 'GCP service account used for Terraform actions'
+    required: true
+  terraform_init_parameters:
+    description: 'Terrafom init parameters'
+    required: true
+  terraform_plan_parameters:
+    description: 'Terrafom plan parameters'
+    required: true
+  github_token: 
+    description: 'GitHub token for auth'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+        terraform_version: "1.8.5"
+
+    - name: 'Authenticate to Google Cloud'
+      id: 'auth'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account: ${{ inputs.service_account }}
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Terraform Init
+      id: init
+      working-directory: ${{ inputs.terraform_directory }}
+      shell: bash
+      run: |
+        terraform init ${{ inputs.terraform_init_parameters }}
+
+    - name: Terraform Plan Destroy
+      id: plan-destroy
+      working-directory: ${{ inputs.terraform_directory }}
+      shell: bash
+      run: |
+        terraform plan -destroy ${{ inputs.terraform_plan_parameters }} -no-color -out=destroy_tfplan > destroy_plan.txt
+        {
+          echo 'plan<<EOF'
+          cat destroy_plan.txt
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT 
+        plan_length=$(wc -c < destroy_plan.txt)
+        echo "plan_length=$plan_length" >> $GITHUB_OUTPUT
+        cat destroy_plan.txt
+
+    - name: Check Plan Lenght and Set Flag
+      id: check-plan-length
+      shell: bash
+      run: |
+        PLAN_LENGTH=${{ steps.plan-destroy.outputs.plan_length }}
+        THRESHOLD=65000
+        if [ "$PLAN_LENGTH" -gt "$THRESHOLD" ]; then
+          echo "show_plan=false" >> $GITHUB_OUTPUT
+        else
+          echo "show_plan=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 'Ask for manual approval with plan'
+      if: ${{ steps.check-plan-length.outputs.show_plan == 'true' }}
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ inputs.github_token }}
+        approvers: ${{ inputs.approvers }}
+        minimum-approvals: 1
+        issue-title: "Terraform Destroy Plan for ${{ inputs.name }}"
+        issue-body: |
+          Terraform Destroy Plan for ${{ inputs.name }}:
+
+          ```
+          ${{ steps.plan-destroy.outputs.plan }}
+          ```
+        exclude-workflow-initiator-as-approver: false
+        additional-approved-words: ''
+        additional-denied-words: ''
+
+    - name: 'Ask for manual approval with link'
+      if: ${{ steps.check-plan-length.outputs.show_plan == 'false' }}
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ inputs.github_token }}
+        approvers: ${{ github.actor }}
+        minimum-approvals: 1
+        issue-title: "Terraform Destroy Plan for ${{ inputs.name }}"
+        issue-body: |
+          Terraform Destroy Plan for ${{ inputs.name }}:
+
+          The produced terraform plan is too big to be shown in a github comment. 
+          Please check out the plan at the following [link](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+        exclude-workflow-initiator-as-approver: false
+        additional-approved-words: ''
+        additional-denied-words: ''
+
+    - name: Terraform Destroy
+      id: destroy
+      working-directory: ${{ inputs.terraform_directory }}
+      shell: bash
+      run: |
+        terraform apply -input=false -no-color destroy_tfplan

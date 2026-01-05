@@ -1,0 +1,76 @@
+name: "Terraform setup and apply"
+description: "Applys terraform and open issue in case of failure"
+inputs:
+  name:
+    description: 'Name of the terraform resource'
+    required: true
+  terraform_directory:
+    description: 'Directory that holds Terraform code'
+    required: true
+  workload_identity_provider: 
+    description: 'GCP Workload Identity federation provider'
+    required: true
+  service_account: 
+    description: 'GCP service account used for Terraform actions'
+    required: true
+  terraform_init_parameters:
+    description: 'Terrafom init parameters'
+    required: true
+  terraform_apply_parameters:
+    description: 'Terrafom apply parameters'
+    required: true
+  github_token: 
+    description: 'GitHub token for auth'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+        terraform_version: "1.8.5"
+
+    - name: 'Authenticate to Google Cloud'
+      id: 'auth'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account: ${{ inputs.service_account }}
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Terraform Init
+      id: init
+      working-directory: ${{ inputs.terraform_directory }}
+      shell: bash
+      run: |
+        terraform init ${{ inputs.terraform_init_parameters }}
+
+    - name: Terraform Apply
+      id: apply
+      working-directory: ${{ inputs.terraform_directory }}
+      shell: bash
+      run: |
+        terraform apply ${{ inputs.terraform_apply_parameters }} --auto-approve
+
+    - name: Create Issue
+      if: failure()
+      uses: dacbd/create-issue-action@main
+      with:
+        token: ${{ github.token }}
+        title: |
+          [${{ github.workflow }}] failure detected
+        assignees: ${{ github.actor }}
+        body: |
+          ## Failure Report:
+          
+          > [!IMPORTANT]
+          > Details on failed run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  
+          - Author: @${{ github.triggering_actor }}
+          - Branch: `${{ github.ref }}`
+          - Commit: ${{ github.sha }}
+          - Workflow Path: `${{ github.workflow_ref }}`
