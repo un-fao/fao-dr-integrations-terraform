@@ -1,25 +1,80 @@
-# Local .terraform directories
+# ==================================
+# Terraform
+# ==================================
 **/.terraform/*
-
-# .tfstate files
 *.tfstate
 *.tfstate.*
-
-# Crash log files
 crash.log
-crash.log.*
-
-# Exclude override files
+crash.*.log
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-
-# Include plugin cache directory
+.terraformrc
+terraform.rc
+*.tfplan
+tfplan
+tfplan.json
 .terraform.lock.hcl
 
-# To ignore variables files
-*.tfvars
-*.tfvars.json
+# .tfvars are explicitly ALLOWED (tracked) per user request
+# *.tfvars
+# *.tfvars.json
 
+# ==================================
+# IDE & Editor
+# ==================================
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.iws
+*.ipr
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ==================================
+# OS Generated Files
+# ==================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+thumbs.db
+Desktop.ini
+
+# ==================================
+# Languages / Frameworks
+# ==================================
+# Python
+__pycache__/
+*.py[cod]
+*.class
+
+# Node
+node_modules/
+npm-debug.log
+
+# ==================================
+# Logs & Secrets
+# ==================================
+*.log
+logs/
+debug/
+*.json.enc
+*-key.json
+*-credentials.json
+service-account*.json
+credentials.json
+gcp-key.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+.secrets
