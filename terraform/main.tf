@@ -6,7 +6,7 @@ resource "google_integrations_client" "fao_dr" {
 resource "google_integrations_integration_version" "send_email_notifications" {
   depends_on = [google_integrations_client.fao_dr]
 
-  integration = "send-email-notifications"
+  integration = "fao-dr-emails-service"
   location    = "europe-west1"
   project     = var.project_id
 
@@ -41,10 +41,10 @@ resource "google_integrations_integration_version" "send_email_notifications" {
     label          = "API Trigger"
     trigger_type   = "API"
     trigger_number = "1"
-    trigger_id     = "api_trigger/send-email-notifications_API_1"
+    trigger_id     = "api_trigger/fao-dr-emails-service_API_1"
 
     properties = {
-      "Trigger name" = "send-email-notifications_API_1"
+      "Trigger name" = "fao-dr-emails-service_API_1"
     }
 
     start_tasks {
