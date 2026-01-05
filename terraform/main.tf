@@ -12,6 +12,6 @@ resource "null_resource" "deploy_integration" {
   }
 
   provisioner "local-exec" {
-    command = "${path.module}/scripts/deploy_integration.sh ${var.project_id} europe-west1 send-email-notifications ${path.module}/integration.json"
+    command = "${path.module}/scripts/deploy_integration.sh ${var.project_id} europe-west1 fao-dr-emails-service ${path.module}/integration.json"
   }
 }

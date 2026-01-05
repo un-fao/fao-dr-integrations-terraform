@@ -27,7 +27,7 @@ The script handles creating the regional client (via Terraform), creating the in
 
 ```bash
 cd terraform
-./scripts/deploy_integration.sh <PROJECT_ID> europe-west1 send-email-notifications ./integration.json
+./scripts/deploy_integration.sh <PROJECT_ID> europe-west1 fao-dr-emails-service ./integration.json
 ```
 
 ### GitHub Actions

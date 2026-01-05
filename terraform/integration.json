@@ -8,11 +8,11 @@
                 }
             ],
             "properties": {
-                "Trigger name": "send-email-notifications_API_1"
+                "Trigger name": "fao-dr-emails-service_API_1"
             },
             "triggerType": "API",
             "triggerNumber": "1",
-            "triggerId": "api_trigger/send-email-notifications_API_1"
+            "triggerId": "api_trigger/fao-dr-emails-service_API_1"
         }
     ],
     "taskConfigs": [
